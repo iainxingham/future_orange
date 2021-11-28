@@ -3,32 +3,65 @@ module Orange exposing (main)
 import Browser
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick)
+import Html.Events exposing (onInput)
 
-type alias Model = Int
+type alias Model = 
+    { intConsultants: Int -- Total number of consultants
+    , intNoNights:    Int -- Number of people not doing nights
+    }
 
 init : Model
 init =
-  0
+  { intConsultants = 14
+  , intNoNights = 1
+  }
 
-type Msg = Increment | Decrement
+type Msg
+    = UpdateCons String
+    | UpdateNoNights String
 
 update : Msg -> Model -> Model
-update msg model =
-  case msg of
-    Increment ->
-      model + 1
+update msg model = 
+    case msg of
+        UpdateCons new_val ->
+            { intConsultants = String.toInt new_val |> Maybe.withDefault 0
+            , intNoNights = model.intNoNights
+            }
+        UpdateNoNights new_val ->
+            { intConsultants = model.intConsultants
+            , intNoNights = String.toInt new_val |> Maybe.withDefault 0 }
 
-    Decrement ->
-      model - 1
-
-view : Int -> Html Msg
+view : Model -> Html Msg
 view model =
-    div [ class "container" ]
-    [ button [ onClick Decrement ] [ text "-" ]
-    , div [] [ text (String.fromInt model) ]
-    , button [ onClick Increment ] [ text "+" ]
-    ]
+    div [ id "set_params" ]
+        [ div [ class "container" 
+            , id "consultants_slider" ]
+            [ text "Total number of people on the rota:"
+            , input
+                [ type_ "range"
+                , Html.Attributes.min "5"
+                , Html.Attributes.max "25"
+                , value <| String.fromInt model.intConsultants
+                , onInput UpdateCons
+                ]
+                []
+            , text <| String.fromInt model.intConsultants
+            ]
+        , div [ class "container" 
+            , id "nonights_slider" ]
+            [ text "Number of people not doing nights:"
+            , input
+                [ type_ "range"
+                , Html.Attributes.min "0"
+                , Html.Attributes.max "10"
+                , value <| String.fromInt model.intNoNights
+                , onInput UpdateNoNights
+                ]
+                []
+            , text <| String.fromInt model.intNoNights
+            ]      
+        ]
+    
 
 main : Program () Model Msg
 main =
