@@ -29,7 +29,8 @@ update msg model =
             }
         UpdateNoNights new_val ->
             { intConsultants = model.intConsultants
-            , intNoNights = String.toInt new_val |> Maybe.withDefault 0 }
+            , intNoNights = String.toInt new_val |> Maybe.withDefault 0 
+            }
 
 view : Model -> Html Msg
 view model =
