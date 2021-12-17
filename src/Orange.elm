@@ -3,19 +3,19 @@ module Orange exposing (main, nightsPerMonth)
 import Browser
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onInput)
+import Html.Events exposing (onInput, onClick)
 import String exposing (padLeft) 
-import Html.Events exposing (onClick)
-import Round exposing (round)
+import Round
 
 type alias Model = 
-    { intConsultants: Int     -- Total number of consultants
-    , intNoNights:    Int     -- Number of people not doing nights
-    , intLeaveTime:   Int     -- Leaving time on night shift after 8pm in half hours
-                              -- eg 3 = 2130
-    , floatCalls:     Float   -- Number of calls per night
-    , intReturns:     Int     -- Ratio of nights with return to hospital
-    , floatReturnTime: Float   -- Time in hours when return to hospital        
+    { intConsultants:  Int     -- Total number of consultants
+    , intNoNights:     Int     -- Number of people not doing nights
+    , intLeaveTime:    Int     -- Leaving time on night shift after 8pm in half hours
+                               -- eg 3 = 2130
+    , floatCalls:      Float   -- Number of calls per night
+    , intReturns:      Int     -- Ratio of nights with return to hospital
+    , floatReturnTime: Float   -- Time in hours when return to hospital
+    , intShortDay:     Int     -- Number of consultants doing a 2PA short day at the weekend   
     }
 
 convertLeaveTime : Int -> String
@@ -54,8 +54,13 @@ callinsPerYear m =
     365.25 / (n * c) 
 
 weekendsNoNights : Model -> Float
-weekendsNoNights m = 
-    (/) 156.0 <| toFloat m.intConsultants
+weekendsNoNights m =
+    let
+        s = (*) 52.0 <| toFloat m.intShortDay
+        w = 156.0 + s
+    in
+    
+    (/) w <| toFloat m.intConsultants
 
 weekendNights : Model -> Float
 weekendNights m = 
@@ -78,11 +83,27 @@ nightPAs m =
 
 weekendPAsNoNights : Model -> Float
 weekendPAsNoNights m = 
-    8 * (weekendsNoNights m) / 42
+    let 
+        -- Number of short days
+        s = toFloat m.intShortDay
+        -- Denominator, short days to long days (assumed fixed at 2)
+        d = 2.0 + s
+        -- Average PAs for weekend daytime
+        p = (16.0 + (4 * s)) / d
+
+    in
+        p * (weekendsNoNights m) / 42
 
 weekendPAsNights : Model -> Float
 weekendPAsNights m =
     8 * (weekendsAndNights m) / 42
+
+isModelValid : Model -> String
+isModelValid m =
+     if (weekendsAndNights m) > 0.0 then
+        ""
+     else
+        "Too few people on nights rota for model to be valid"
 
 init : Model
 init =
@@ -92,6 +113,7 @@ init =
   , floatCalls = 0.67
   , intReturns = 9
   , floatReturnTime = 3.0
+  , intShortDay = 0
   }
 
 type Msg
@@ -101,6 +123,7 @@ type Msg
     | UpdateCalls String
     | UpdateReturns String
     | UpdateReturnTime String
+    | UpdateShortDay String
     | ResetButton
 
 update : Msg -> Model -> Model
@@ -124,14 +147,19 @@ update msg model =
         UpdateReturnTime new_val ->
             { model | floatReturnTime = String.toFloat new_val |> Maybe.withDefault 3.0 
             }
-        ResetButton ->
-            { intConsultants = 14
-            , intNoNights = 1
-            , intLeaveTime = 8
-            , floatCalls = 0.67
-            , intReturns = 9
-            , floatReturnTime = 3.0
+        UpdateShortDay new_val ->
+            { model | intShortDay = String.toInt new_val |> Maybe.withDefault 0
             }
+        ResetButton ->
+            init
+            --{ intConsultants = 14
+            --, intNoNights = 1
+            --, intLeaveTime = 8
+            --, floatCalls = 0.67
+            --, intReturns = 9
+            --, floatReturnTime = 3.0
+            --, intShortDay = 0
+            --}
 
 view : Model -> Html Msg
 view model =
@@ -223,6 +251,18 @@ view model =
                             ] []
                         ]
                         , text <| String.fromFloat model.floatReturnTime
+                    , div [] [
+                        text "Number of weekend \"short day\" consultants"
+                        , input
+                            [ type_ "range"
+                            , Html.Attributes.min "0"
+                            , Html.Attributes.max "3"
+                            , Html.Attributes.step "1"
+                            , value <| String.fromInt model.intShortDay
+                            , onInput UpdateShortDay
+                            ] []
+                        ]
+                        , text <| String.fromInt model.intShortDay                        
                     ]
                 ]
                 , div [class "col"
@@ -239,7 +279,7 @@ view model =
                 [ thead [] 
                     [th [] []
                     ,th [] [text "On nights rota"]
-                    ,th [] [text "No nights"]
+                    ,th [] [text "Not on nights rota"]
                     ]
                 , tr []
                     [td [] [text "Number of nights per month"]
@@ -279,6 +319,9 @@ view model =
                 ]
                 
             ] -- Add model validation here?
+        , div [class "container mt-5" 
+            , id "validation" ]
+            [p [] [text <| isModelValid model] ]
         ]
 
 main : Program () Model Msg
