@@ -152,14 +152,6 @@ update msg model =
             }
         ResetButton ->
             init
-            --{ intConsultants = 14
-            --, intNoNights = 1
-            --, intLeaveTime = 8
-            --, floatCalls = 0.67
-            --, intReturns = 9
-            --, floatReturnTime = 3.0
-            --, intShortDay = 0
-            --}
 
 view : Model -> Html Msg
 view model =
