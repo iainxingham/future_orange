@@ -201,7 +201,19 @@ view model =
                             ]
                             []
                         , text <| String.fromInt model.intNoNights
-                        ]      
+                        ]
+                    , div [] [
+                        text "Number of weekend \"short day\" consultants"
+                        , input
+                            [ type_ "range"
+                            , Html.Attributes.min "0"
+                            , Html.Attributes.max "3"
+                            , Html.Attributes.step "1"
+                            , value <| String.fromInt model.intShortDay
+                            , onInput UpdateShortDay
+                            ] []
+                        ]
+                    , text <| String.fromInt model.intShortDay      
                     ]
                 , div [class "col"
                     , id "other_params"
@@ -252,18 +264,6 @@ view model =
                             ] []
                         ]
                         , text <| String.fromFloat model.floatReturnTime
-                    , div [] [
-                        text "Number of weekend \"short day\" consultants"
-                        , input
-                            [ type_ "range"
-                            , Html.Attributes.min "0"
-                            , Html.Attributes.max "3"
-                            , Html.Attributes.step "1"
-                            , value <| String.fromInt model.intShortDay
-                            , onInput UpdateShortDay
-                            ] []
-                        ]
-                        , text <| String.fromInt model.intShortDay                        
                     ]
                 ]
                 , div [class "container-fluid"
