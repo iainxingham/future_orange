@@ -317,21 +317,27 @@ view model =
         , div [class "container mt-5" 
             , id "validation" ]
             [p [] [text <| isModelValid model] ]
-        , div [class "container-fluid"
+        , div [class "container"
             , id "chart_stack"]
             [ div [class "row", id "titles" ]
                 [ div [class "col-sm-4"] [ text "Daytime weekends per year" ]
-                , div [class "col-sm-4"] []
-                , div [class "col-sm-4"] []
+                , div [class "col-sm-4"] [ text "Weekend days PAs (per week)" ]
+                , div [class "col-sm-4"] [ text "Total out of hours PAs (per week)"]
                 ]
             , div [class "row", id "charts" ]
                 [ div [class "col-sm-4"] [ OrangeBar.barchart "Nights" 
                     (weekendsAndNights model) 
                     "No nights"
-                    (weekendsNoNights model)]
+                    (weekendsNoNights model) ]
+                , div [class "col-sm-4"] [ OrangeBar.barchart "Nights"
+                    (weekendPAsNights model)
+                    "No nights"
+                    (weekendPAsNoNights model) ]
+                , div [class "col-sm-4"] [ OrangeBar.barchart "Nights"
+                    ((nightPAs model) + (weekendPAsNights model))
+                    "No nights"
+                    (weekendPAsNoNights model) ]
                 ]
-                , div [class "col-sm-4"] []
-                , div [class "col-sm-4"] []
             ]
         ] 
         

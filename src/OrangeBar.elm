@@ -9,6 +9,7 @@ import TypedSvg.Types exposing (Transform(..))
 import Scale exposing (BandScale, ContinuousScale, defaultBandConfig)
 import TypedSvg.Core exposing (Svg)
 import Color exposing (Color)
+import Round
 
 colourA : Color
 colourA = Color.rgb255 26 255 26
@@ -61,30 +62,23 @@ getcolour i =
         2 -> colourB
         _ -> Color.black
 
-
-type alias BarRecord = 
-    { val : Float
-    , pos : Int
-    , lab : String
-    }
-
-drawbar : BarRecord -> Svg msg
+drawbar : (Float, Int) -> Svg msg
 drawbar val =
     S.g [ SA.class ["bar"] ] 
         [ S.rect 
-            [ SA.x <| ST.px (Scale.convert xScale val.pos)
-            , SA.y <| ST.px (Scale.convert yScale val.val)
+            [ SA.x <| ST.px (Scale.convert xScale <| Tuple.second val)
+            , SA.y <| ST.px (Scale.convert yScale <| Tuple.first val)
             , SA.width <| ST.px <| Scale.bandwidth xScale
-            , SA.height <| ST.px (h - Scale.convert yScale val.val - 2 * padding)
-            , SA.fill <| ST.Paint <| getcolour val.pos
+            , SA.height <| ST.px (h - Scale.convert yScale (Tuple.first val) - 2 * padding)
+            , SA.fill <| ST.Paint <| getcolour (Tuple.second val)
             ]
             []
         , S.text_
-            [ SA.x <| ST.px <| Scale.convert xScale val.pos
-            , SA.y <| ST.px <| Scale.convert yScale val.val - 5
+            [ SA.x <| ST.px <| 35 + Scale.convert xScale (Tuple.second val)
+            , SA.y <| ST.px <| Scale.convert yScale (Tuple.first val) - 5
             , SA.textAnchor ST.AnchorMiddle
             ]
-            [ TypedSvg.Core.text val.lab ]]
+            [ TypedSvg.Core.text <| Round.round 2 (Tuple.first val) ]]
 
 barchart : String -> Float -> String -> Float -> Html a
 barchart lab_a a lab_b b =
@@ -94,5 +88,5 @@ barchart lab_a a lab_b b =
         , S.g [ SA.transform [ Translate (padding - 1) padding ] ]
             [ yAxis ]
         , S.g [ SA.transform [ Translate padding padding ], SA.class [ "series" ] ] <|
-            List.map drawbar [ BarRecord a 1 lab_a, BarRecord b 2 lab_b]
+            List.map drawbar [ (a, 1), (b, 2)]
         ]
