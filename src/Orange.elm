@@ -95,7 +95,8 @@ weekendPAsNoNights m =
         p = (16.0 + (4 * s)) / d
 
     in
-        p * (weekendsNoNights m) / 42
+        if m.intNoNights == 0 then 0
+        else p * (weekendsNoNights m) / 42
 
 weekendPAsNights : Model -> Float
 weekendPAsNights m =
@@ -107,6 +108,11 @@ isModelValid m =
         ""
      else
         "Too few people on nights rota for model to be valid"
+
+weekendsifnonights : Model -> Float
+weekendsifnonights m =
+    if m.intNoNights == 0 then 0
+    else weekendsNoNights m
 
 init : Model
 init =
@@ -159,7 +165,7 @@ update msg model =
 view : Model -> Html Msg
 view model =
     div [ id "app" ]
-        [ div [ class "container-fluid p-5 bg-primary text-white"
+        [ div [ class "container-fluid p-5 text-white"
             , id  "title_box" 
             ]
             [ p [ ] [ h1 [ ] [text "Future is Orange"] ]
@@ -260,7 +266,7 @@ view model =
                         , text <| String.fromInt model.intShortDay                        
                     ]
                 ]
-                , div [class "col"
+                , div [class "container-fluid"
                     , id "controls"
                     ]
                     [
@@ -268,9 +274,9 @@ view model =
                     ]
                 
             ] 
-        , div [ class "container mt-5" 
+        , div [ class "container-fluid" 
             , id "results" ] 
-            [ table []
+            [ table [class "table table-striped"]
                 [ thead [] 
                     [th [] []
                     ,th [] [text "On nights rota"]
@@ -289,7 +295,7 @@ view model =
                 , tr []
                     [td [] [text "Daytime weekends per year"]
                     ,td [] [text <| Round.round 2 (weekendsAndNights model)]
-                    ,td [] [text <| Round.round 2 (weekendsNoNights model)]
+                    ,td [] [text <| Round.round 2 (weekendsifnonights model)]
                     ]
                 , tr []
                     [td [] [text "Nighttime weekends per year"]
@@ -314,10 +320,10 @@ view model =
                 ]
                 
             ] -- Add model validation here?
-        , div [class "container mt-5" 
+        , div [class "container-fluid" 
             , id "validation" ]
             [p [] [text <| isModelValid model] ]
-        , div [class "container"
+        , div [class "container-fluid"
             , id "chart_stack"]
             [ div [class "row", id "titles" ]
                 [ div [class "col-sm-4"] [ text "Daytime weekends per year" ]
@@ -328,7 +334,7 @@ view model =
                 [ div [class "col-sm-4"] [ OrangeBar.barchart "Nights" 
                     (weekendsAndNights model) 
                     "No nights"
-                    (weekendsNoNights model) ]
+                    (weekendsifnonights model) ]
                 , div [class "col-sm-4"] [ OrangeBar.barchart "Nights"
                     (weekendPAsNights model)
                     "No nights"
