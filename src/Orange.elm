@@ -6,11 +6,9 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (onInput, onClick)
 import String exposing (padLeft)
 import Round
-import TypedSvg as S
-import TypedSvg.Attributes as SA
-import TypedSvg.Types as ST
 
-import OrangePie
+--import OrangePie
+import OrangeBar
 
 type alias Model = 
     { intConsultants:  Int     -- Total number of consultants
@@ -319,26 +317,24 @@ view model =
         , div [class "container mt-5" 
             , id "validation" ]
             [p [] [text <| isModelValid model] ]
-        , OrangePie.piechart "Label A" 40 "Label B" 60 [SA.viewBox 0 0 200 200]
-        , S.svg [ SA.viewBox 0 0 200 200
-            ]
-            [ S.rect
-                [ SA.x <| ST.px 10 
-                , SA.y <| ST.px 10
-                , SA.width <| ST.px 10
-                , SA.height <| ST.px 10
-                , SA.rx <| ST.px 15
-                , SA.ry <| ST.px 15
+        , div [class "container-fluid"
+            , id "chart_stack"]
+            [ div [class "row", id "titles" ]
+                [ div [class "col-sm-4"] [ text "Daytime weekends per year" ]
+                , div [class "col-sm-4"] []
+                , div [class "col-sm-4"] []
                 ]
-                []
-            , S.circle
-                [ SA.cx <| ST.px 10
-                , SA.cy <| ST.px 10
-                , SA.r <| ST.px 10
+            , div [class "row", id "charts" ]
+                [ div [class "col-sm-4"] [ OrangeBar.barchart "Nights" 
+                    (weekendsAndNights model) 
+                    "No nights"
+                    (weekendsNoNights model)]
                 ]
-                []
+                , div [class "col-sm-4"] []
+                , div [class "col-sm-4"] []
             ]
-        ]
+        ] 
+        
 
 main : Program () Model Msg
 main =
