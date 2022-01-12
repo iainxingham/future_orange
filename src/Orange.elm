@@ -19,6 +19,8 @@ type alias Model =
     , intReturns:      Int     -- Ratio of nights with return to hospital
     , floatReturnTime: Float   -- Time in hours when return to hospital
     , intShortDay:     Int     -- Number of consultants doing a 2PA short day at the weekend   
+    , intWeekdayRatio: Int     -- Proportion of weekday evenings nights : no nights people
+                               -- where 50:50 is equal numbers between both groups
     }
 
 convertLeaveTime : Int -> String
@@ -114,6 +116,10 @@ weekendsifnonights m =
     if m.intNoNights == 0 then 0
     else weekendsNoNights m
 
+weekdaysNights : Model -> Float
+
+weekdaysNoNights : Model -> Float
+
 init : Model
 init =
   { intConsultants = 14
@@ -123,6 +129,7 @@ init =
   , intReturns = 9
   , floatReturnTime = 3.0
   , intShortDay = 0
+  , intWeekdayRatio = 50
   }
 
 type Msg
@@ -133,6 +140,7 @@ type Msg
     | UpdateReturns String
     | UpdateReturnTime String
     | UpdateShortDay String
+    | UpdateWeekdayProp String
     | ResetButton
 
 update : Msg -> Model -> Model
@@ -148,16 +156,24 @@ update msg model =
             { model | intLeaveTime = String.toInt new_val |> Maybe.withDefault 0
             }
         UpdateCalls new_val ->
-            { model | floatCalls = String.toFloat new_val |> Maybe.withDefault 0.67 
+            { 
+                model | floatCalls = String.toFloat new_val |> Maybe.withDefault 0.67 
             }
         UpdateReturns new_val ->
-            { model | intReturns = String.toInt new_val |> Maybe.withDefault 9
+            { 
+                model | intReturns = String.toInt new_val |> Maybe.withDefault 9
             }
         UpdateReturnTime new_val ->
-            { model | floatReturnTime = String.toFloat new_val |> Maybe.withDefault 3.0 
+            { 
+                model | floatReturnTime = String.toFloat new_val |> Maybe.withDefault 3.0 
             }
         UpdateShortDay new_val ->
-            { model | intShortDay = String.toInt new_val |> Maybe.withDefault 0
+            { 
+                model | intShortDay = String.toInt new_val |> Maybe.withDefault 0
+            }
+        UpdateWeekdayProp new_val ->
+            {
+                model | intWeekdayRatio = String.toInt new_val |> Maybe.withDefault 50
             }
         ResetButton ->
             init
@@ -213,7 +229,20 @@ view model =
                             , onInput UpdateShortDay
                             ] []
                         ]
-                    , text <| String.fromInt model.intShortDay      
+                        , text <| String.fromInt model.intShortDay
+                    , div [ class "container-fluid" 
+                        , id "weekday_prop_slider" ]
+                        [ text "Proportion of weekday evenings by those on nights"
+                        , input
+                            [ type_ "range"
+                            , Html.Attributes.min "0"
+                            , Html.Attributes.max "100"
+                            , Html.Attributes.step "10"
+                            , value <| String.fromInt model.intWeekdayRatio
+                            , onInput UpdateWeekdayProp
+                            ][]
+                        , text <| String.fromInt model.intWeekdayRatio
+                        ]
                     ]
                 , div [class "col"
                     , id "other_params"
@@ -301,6 +330,11 @@ view model =
                     [td [] [text "Nighttime weekends per year"]
                     ,td [] [text <| Round.round 2 (weekendNights model)]
                     ,td [] [text "0"]
+                    ]
+                , tr []
+                    [td [] [text "Weekday evenings per year"]
+                    ,td [] [text <| Round.round 2 (weekdaysNights model)]
+                    , td [] [text <| Round.round 2 (weekdaysNoNights model)]
                     ]
                 , tr []
                     [td [] [text "Night shift PAs (per week)"]
