@@ -11,16 +11,16 @@ import Round
 import OrangeBar
 
 type alias Model = 
-    { intConsultants:  Int     -- Total number of consultants
-    , intNoNights:     Int     -- Number of people not doing nights
-    , intLeaveTime:    Int     -- Leaving time on night shift after 8pm in half hours
-                               -- eg 3 = 2130
-    , floatCalls:      Float   -- Number of calls per night
-    , intReturns:      Int     -- Ratio of nights with return to hospital
-    , floatReturnTime: Float   -- Time in hours when return to hospital
-    , intShortDay:     Int     -- Number of consultants doing a 2PA short day at the weekend   
-    , intWeekdayRatio: Int     -- Proportion of weekday evenings nights : no nights people
-                               -- where 50:50 is equal numbers between both groups
+    { intConsultants:       Int     -- Total number of consultants
+    , intNoNights:          Int     -- Number of people not doing nights
+    , intLeaveTime:         Int     -- Leaving time on night shift after 8pm in half hours
+                                    -- eg 3 = 2130
+    , floatCalls:           Float   -- Number of calls per night
+    , intReturns:           Int     -- Ratio of nights with return to hospital
+    , floatReturnTime:      Float   -- Time in hours when return to hospital
+    , intShortDay:          Int     -- Number of consultants doing a 2PA short day at the weekend   
+    , floatWeekdayRatio:    Float   -- Ratio of weekday shifts (no nights) / (nights)
+                                    -- where 1 is equal numbers between both groups
     }
 
 convertLeaveTime : Int -> String
@@ -117,8 +117,34 @@ weekendsifnonights m =
     else weekendsNoNights m
 
 weekdaysNights : Model -> Float
+weekdaysNights m =
+    let
+        nn = toFloat <| (-) m.intConsultants m.intNoNights
+        rnd = m.floatWeekdayRatio * (toFloat m.intNoNights)
+    in
+        520.0 / (nn + rnd)
 
 weekdaysNoNights : Model -> Float
+weekdaysNoNights m =
+    if m.intNoNights == 0 then 0
+    else m.floatWeekdayRatio * (weekdaysNights m)
+
+weeklyOOHPANights : Model -> Float
+weeklyOOHPANights m =
+    let
+        nights = nightPAs m
+        evenings = ((weekdaysNights m) * 0.75) / 42
+        weekends = weekendPAsNights m
+    in
+        nights + evenings + weekends
+
+weeklyOOHPANoNights : Model -> Float
+weeklyOOHPANoNights m =
+    let
+        evenings = ((weekdaysNoNights m) * 0.75) / 42
+        weekends = weekendPAsNoNights m
+    in
+        evenings + weekends        
 
 init : Model
 init =
@@ -129,7 +155,7 @@ init =
   , intReturns = 9
   , floatReturnTime = 3.0
   , intShortDay = 0
-  , intWeekdayRatio = 50
+  , floatWeekdayRatio = 1
   }
 
 type Msg
@@ -173,7 +199,7 @@ update msg model =
             }
         UpdateWeekdayProp new_val ->
             {
-                model | intWeekdayRatio = String.toInt new_val |> Maybe.withDefault 50
+                model | floatWeekdayRatio = String.toFloat new_val |> Maybe.withDefault 1.0
             }
         ResetButton ->
             init
@@ -232,16 +258,16 @@ view model =
                         , text <| String.fromInt model.intShortDay
                     , div [ class "container-fluid" 
                         , id "weekday_prop_slider" ]
-                        [ text "Proportion of weekday evenings by those on nights"
+                        [ text "Ratio of weekday evenings (no nights / nights)"
                         , input
                             [ type_ "range"
-                            , Html.Attributes.min "0"
-                            , Html.Attributes.max "100"
-                            , Html.Attributes.step "10"
-                            , value <| String.fromInt model.intWeekdayRatio
+                            , Html.Attributes.min "0.1"
+                            , Html.Attributes.max "3"
+                            , Html.Attributes.step "0.1"
+                            , value <| String.fromFloat model.floatWeekdayRatio
                             , onInput UpdateWeekdayProp
                             ][]
-                        , text <| String.fromInt model.intWeekdayRatio
+                        , text <| String.fromFloat model.floatWeekdayRatio
                         ]
                     ]
                 , div [class "col"
@@ -347,10 +373,15 @@ view model =
                     ,td [] [text <| Round.round 2 (weekendPAsNoNights model)]
                     ]
                 , tr []
-                    [td [] [text "Total out of hours PAs (per week)"]
+                    [td [] [text "Nights and weekends PAs (per week)"]
                     ,td [] [text <| Round.round 2 ((nightPAs model) + (weekendPAsNights model))]
                     ,td [] [text <| Round.round 2 (weekendPAsNoNights model)]
-                    ]                    
+                    ]
+                , tr []
+                    [td [] [text "Total out of hours PAs (per week)"]
+                    ,td [] [text <| Round.round 2 (weeklyOOHPANights model)]
+                    ,td [] [text <| Round.round 2 (weeklyOOHPANoNights model)]
+                    ]                       
                 ]
                 
             ] -- Add model validation here?
@@ -374,9 +405,9 @@ view model =
                     "No nights"
                     (weekendPAsNoNights model) ]
                 , div [class "col-sm-4"] [ OrangeBar.barchart "Nights"
-                    ((nightPAs model) + (weekendPAsNights model))
+                    (weeklyOOHPANights model)
                     "No nights"
-                    (weekendPAsNoNights model) ]
+                    (weeklyOOHPANoNights model) ]
                 ]
             ]
         ] 
