@@ -21,6 +21,7 @@ type alias Model =
     , intShortDay:          Int     -- Number of consultants doing a 2PA short day at the weekend   
     , floatWeekdayRatio:    Float   -- Ratio of weekday shifts (no nights) / (nights)
                                     -- where 1 is equal numbers between both groups
+    , boolHelen:            Bool    -- Helen's model applies?                                    
     }
 
 convertLeaveTime : Int -> String
@@ -81,10 +82,11 @@ nightPAs m =
         evening = (toFloat m.intLeaveTime) / 6
         calls = m.floatCalls / 6
         return = m.floatReturnTime / (3 * (toFloat m.intReturns))
+        helen = if m.boolHelen then 0.75 else 0
         each = 365.25 / (toFloat (m.intConsultants - m.intNoNights))
     in
     
-        (evening + calls + return) * each / 42
+        (evening + calls + return + helen) * each / 42
 
 weekendPAsNoNights : Model -> Float
 weekendPAsNoNights m = 
@@ -93,8 +95,10 @@ weekendPAsNoNights m =
         s = toFloat m.intShortDay
         -- Denominator, short days to long days (assumed fixed at 2)
         d = 2.0 + s
+        -- PAs for two long days weekends
+        h = if m.boolHelen then 15.0 else 16.0
         -- Average PAs for weekend daytime
-        p = (16.0 + (4 * s)) / d
+        p = (h + (4 * s)) / d
 
     in
         if m.intNoNights == 0 then 0
@@ -102,7 +106,10 @@ weekendPAsNoNights m =
 
 weekendPAsNights : Model -> Float
 weekendPAsNights m =
-    8 * (weekendsAndNights m) / 42
+    let
+        pas = if m.boolHelen then 7.5 else 8
+    in
+        pas * (weekendsAndNights m) / 42
 
 isModelValid : Model -> String
 isModelValid m =
@@ -121,8 +128,9 @@ weekdaysNights m =
     let
         nn = toFloat <| (-) m.intConsultants m.intNoNights
         rnd = m.floatWeekdayRatio * (toFloat m.intNoNights)
+        h = if m.boolHelen then 260.0 else 520.0
     in
-        520.0 / (nn + rnd)
+        h / (nn + rnd)
 
 weekdaysNoNights : Model -> Float
 weekdaysNoNights m =
@@ -156,6 +164,7 @@ init =
   , floatReturnTime = 3.0
   , intShortDay = 0
   , floatWeekdayRatio = 1
+  , boolHelen = False
   }
 
 type Msg
@@ -167,6 +176,7 @@ type Msg
     | UpdateReturnTime String
     | UpdateShortDay String
     | UpdateWeekdayProp String
+    | ToggleHelenModel
     | ResetButton
 
 update : Msg -> Model -> Model
@@ -200,6 +210,10 @@ update msg model =
         UpdateWeekdayProp new_val ->
             {
                 model | floatWeekdayRatio = String.toFloat new_val |> Maybe.withDefault 1.0
+            }
+        ToggleHelenModel ->
+            {
+                model | boolHelen = not model.boolHelen
             }
         ResetButton ->
             init
@@ -268,6 +282,14 @@ view model =
                             , onInput UpdateWeekdayProp
                             ][]
                         , text <| String.fromFloat model.floatWeekdayRatio
+                        ]
+                    , div [ class "container-fluid" 
+                        , id "helens_model" ]
+                        [ text "Helen's model"
+                        , input
+                            [ type_ "checkbox"
+                            , onClick ToggleHelenModel
+                            ][]
                         ]
                     ]
                 , div [class "col"
